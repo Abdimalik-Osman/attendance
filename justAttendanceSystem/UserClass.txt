@@ -1,0 +1,242 @@
+ class User
+    {
+       static SqlConnection conn = new SqlConnection("server=ENG_SAALIM; database=ExamManagementDB; integrated security=true");
+        
+        string username, password, role;
+        bool status;
+
+        public User(string username, string password, string role, bool status)
+        {
+            this.username = username;
+            this.password = password;
+            this.role = role;
+            this.status = status;
+        }
+
+        public string addUser()
+        {
+            SqlCommand cmd;
+            string query;
+            string message = "";
+            query = "insert into Users values(@user_id, @password, @role, @status)";
+            cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@user_id", this.username);
+            cmd.Parameters.AddWithValue("@password", this.password);
+            cmd.Parameters.AddWithValue("@role", this.role);
+            cmd.Parameters.AddWithValue("@status", this.status);
+
+            try
+            {
+                if (!isExist(this.username))
+                {
+                    conn.Open();
+                    int row = cmd.ExecuteNonQuery(); 
+                    if (row>0)
+                        message = "Added Successifully..";
+                   else
+                        message = "Failed Add..";
+                }
+                else
+                {
+                    message = "This user have already taken..";
+                }
+                
+                
+            }
+            catch (Exception ex)
+            {
+
+                message = ex.Message;
+            }
+            conn.Close();
+            assignUser();
+            return message;
+        }
+
+        public static string UpdateUser(string username, string password, bool status)
+        {
+            SqlCommand cmd;
+            string query;
+            string message = "";
+            query = "update Users set password=@password, status=@status where user_id = @user_id";
+            cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@user_id", username);
+            cmd.Parameters.AddWithValue("@password", password);
+            cmd.Parameters.AddWithValue("@status", status);
+
+            try
+            {
+                conn.Open();
+                int row = cmd.ExecuteNonQuery();
+                if (row > 0)
+                    message = "Updated Successifully..";
+                else
+                    message = "Failed Update..";
+
+            }
+            catch (Exception ex)
+            {
+
+                message = ex.Message;
+            }
+            conn.Close();
+            return message;
+        }
+
+        public static string deleteUser(string username)
+        {
+            SqlCommand cmd;
+            string query;
+            string message = "";
+            query = "delete Users where user_id = @user_id";
+            cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@user_id", username);
+
+            try
+            {
+                conn.Open();
+                int row = cmd.ExecuteNonQuery();
+                if (row > 0)
+                    message = "Deleted Successifully..";
+                else
+                    message = "Failed to Delete..";
+            }
+            catch (Exception ex)
+            {
+
+                message = ex.Message;
+            }
+            conn.Close();
+            return message;
+        }
+        private bool isExist(string username)
+        {
+            SqlCommand cmd;
+            string query;
+            bool exists = false;
+            query = "select count(*) from Users where user_id = @user_id";
+            cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@user_id", username);
+            conn.Open();
+            int count = int.Parse(cmd.ExecuteScalar().ToString());
+            exists = (count > 0) ? true : false;
+            conn.Close();
+            return exists;
+        }
+
+        private void assignUser()
+        {
+            if (CheckRole() == "Student")
+            {
+                string query = "update Student set user_id = @username where student_id=@username";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@username", this.username);
+                cmd.Parameters.AddWithValue("@student_id", this.username);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+                conn.Close();
+            }
+            else if (CheckRole() == "Lecturer")
+            {
+                string query = "update Lecturer set user_id = @username where lecturer_id=@username";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@username", this.username);
+                cmd.Parameters.AddWithValue("@lecturer_id", this.username);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+                conn.Close();
+            }
+            else if (CheckRole() == "Admin")
+            {
+                string query = "update Admins set user_id = @username where admin_id=@username";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@username", this.username);
+                cmd.Parameters.AddWithValue("@admin_id", this.username);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+                conn.Close();
+            }
+            
+        }
+
+        public string CheckRole()
+        {
+            string role;
+            string query = "Select role from Users where user_id=@username";
+            SqlCommand cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@username", this.username);
+            conn.Open();
+            role = cmd.ExecuteScalar().ToString();
+            conn.Close();
+            return role;
+        }
+
+        public bool isActive()
+        {
+            bool status;
+            string query = "Select status from Users where user_id=@username";
+            SqlCommand cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@username", this.username);
+            conn.Open();
+            status = bool.Parse(cmd.ExecuteScalar().ToString());
+            conn.Close();
+
+            return status;
+        }
+
+        public bool isValid()
+        {
+            bool valid;
+            string query = "select  count(*) from Users where user_id =@user_id and password = @password ";
+            SqlCommand cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@user_id", this.username);
+            cmd.Parameters.AddWithValue("@password", this.password);
+            conn.Open();
+
+            int count = int.Parse(cmd.ExecuteScalar().ToString());
+            valid = (count > 0) ? true : false;
+            conn.Close();
+
+            return valid;
+        }
+        public void Login()
+        {
+            frmMainFormLoging form2 = new frmMainFormLoging();
+            if (isValid()) 
+            { 
+                if (isActive())
+                {
+                    if (CheckRole() == "Student")
+                    {
+                        Student.New_std_Dash form = new Student.New_std_Dash();
+                        form.Show();
+                        form2.Hide();
+                    }
+                    else if (CheckRole() == "Lecturer")
+                    {
+                        Teacher_Profile.Teacher_New_Dashboard form = new Teacher_Profile.Teacher_New_Dashboard();
+                        form.Show();
+                        form2.Hide();
+                    }
+                    else if (CheckRole() == "Admin")
+                    {
+                        Admin.New_Admin_Dashboard form = new Admin.New_Admin_Dashboard();
+                        form.Show();
+                        form2.Hide();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Unassined Role....");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("In active Please Connect to the Office..");
+                }
+            }
+            else
+            {
+                MessageBox.Show("Invalid username or password...");
+            }
+        }
+    }

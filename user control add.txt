@@ -1,0 +1,7 @@
+panel 4.controls.clear();
+class c = new class;
+c.TopLevel = false;
+panel 4.controls.Add(c);
+c.formBorderStyle. = System.windows.forms.formBorderStyle = none;
+c.Dock = DockStyle.fill;
+c.show();
